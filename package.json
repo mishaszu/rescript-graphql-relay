@@ -10,8 +10,10 @@
     "graphql-relay"
   ],
   "scripts": {
+    "start": "nodemon ./examples/examples.bs.js",
     "dev": "rescript build -w",
-    "build": "rescript build"
+    "build": "rescript build",
+    "clean": "rescript clean"
   },
   "author": "mishaszu",
   "license": "Apache License, Version 2.0",

@@ -5,6 +5,11 @@
     {
       "dir": "src",
       "subdirs": true
+    },
+    {
+      "type": "dev",
+      "dir": "examples",
+      "subdirs": true
     }
   ],
   "package-specs": {
