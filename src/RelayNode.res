@@ -3,8 +3,7 @@ type nodeField
 type nodesField
 
 type nodeDefinitions = {
-  nodeInterface: nodeInterface,
-  nodeField: nodeField,
-  nodesField: nodesField,
+  nodeInterface: Graphql.interface,
+  nodeField: Graphql.Field.f,
+  nodesField: Graphql.Field.f,
 }
-

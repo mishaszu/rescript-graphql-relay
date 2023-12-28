@@ -1,9 +1,8 @@
-open Helpers
 type mapperParam = {"type": string, "id": string}
 
 module Node = {
-  type globalIdToDb<'context> = (string, 'context) => promise<Js.Null.t<Graphql.graphQlObject>>
-  type dbToGraphql = Graphql.graphQlObject => Js.null<string>
+  type globalIdToDb<'context> = (string, 'context) => promise<Js.Null.t<Graphql.Types.t>>
+  type dbToGraphql = Graphql.Types.t => Js.null<string>
 
   @module("graphql-relay")
   external createNodeDefinitions: (globalIdToDb<'c>, dbToGraphql) => RelayNode.nodeDefinitions =
@@ -11,67 +10,56 @@ module Node = {
 }
 
 module Connection = {
-  type connectionConfig = {
+  type connectionConfig<'source, 'args, 'ctx, 'a> = {
     name: string,
-    nodeType: Graphql.graphQlObject,
+    nodeType: Graphql.ModelType.m<'source, 'args, 'ctx, 'a>,
   }
 
-  type connectionOutput<'t> = {connectionType: Graphql.InputTypes.t<'t>}
-
   @module("graphql-relay")
-  external connectionDefinitions: connectionConfig => connectionOutput<'t> = "connectionDefinitions"
+  external connectionDefinitions: connectionConfig<'source, 'args, 'ctx, 'a> => Graphql.Types.t =
+    "connectionDefinitions"
 }
 
 module Args = {
+  type t = Js.Dict.t<Graphql.Input.m>
+
   @module("graphql-relay")
   external connectionFromArrayFn: ('a, 'b) => Js.Null.t<'a> = "connectionFromArray"
 
   let connectionFromArray = (arr: 'a, args: 'b) =>
     connectionFromArrayFn(arr, Helpers.jsUnwrapVariant(args))
 
-  type argsInput = {
-    "before": Graphql.Field.field2<string>,
-    "after": Graphql.Field.field2<string>,
-    "first": Graphql.Field.field2<int>,
-    "last": Graphql.Field.field2<int>,
-  }
-
   type argsOutput = {"before": string, "after": string, "first": int, "last": int}
 
-  @module("graphql-relay") external connectionArgs: argsInput = "connectionArgs"
-
-  let makeConnctionArgsFun: argsInput => argsInput = %raw(`
-  (connectionArgs) => ({...connectionArgs})
-`)
-
-  let mergeArgs: (argsInput, 'a) => 'b = %raw(`
-  (connectionArgs, args) => ({...connectionArgs, ...args})
-`)
-
-  let defaultArgs = () => makeConnctionArgsFun(connectionArgs)
-
-  let addArg = (args, key: string, field: Graphql.Field.field2<'a>) => {
-    let obj = jsCreateObj(key, field)
-    Js.Obj.assign(args, obj)
+  module Internal = {
+    @module("graphql-relay") external connectionArgs: t = "connectionArgs"
   }
+
+  let makeConnctionArgsFun = args => Js.Dict.entries(args)->Js.Dict.fromArray
+
+  let defaultArgs = () => makeConnctionArgsFun(Internal.connectionArgs)
+
+  let addArg = (dict: Js.Dict.t<Graphql.Input.m>, key: string, value: Graphql.Input.m) => {
+    Js.Dict.set(dict, key, value)
+    dict
+  }
+
+  let make = Graphql.Input.make
 }
 
 module Id = {
   @module("graphql-relay") external fromGlobalId: string => mapperParam = "fromGlobalId"
   @module("graphql-relay")
-  external globalIdField: string => Graphql.InputTypes.t<string> = "globalIdField"
+  external globalIdField: string => Graphql.Types.t = "globalIdField"
   @module("graphql-relay")
-  external globalIdFieldUnit: unit => Graphql.InputTypes.t<string> = "globalIdField"
+  external globalIdFieldUnit: unit => Graphql.Types.t = "globalIdField"
   @module("graphql-relay")
-  external globalIdFieldCustomFetcher: (
-    string,
-    Graphql.graphQlObject => string,
-  ) => Graphql.InputTypes.t<string> = "globalIdField"
+  external globalIdFieldCustomFetcher: (string, Graphql.Types.t => string) => Graphql.Types.t =
+    "globalIdField"
 
-  @get external getId: Graphql.graphQlObject => string = "id"
+  @get external getId: Graphql.Types.t => string = "id"
 
-  let customIdTypeCreator = (obj: Graphql.graphQlObject, type_: string) =>
-    type_ ++ "+" ++ getId(obj)
+  let customIdTypeCreator = (obj: Graphql.Types.t, type_: string) => type_ ++ "+" ++ getId(obj)
 
   type customTypeId = (string, string)
 
@@ -90,36 +78,48 @@ module Id = {
     }
 }
 
-module Output = {
-  type fieldsDef<'a, 'b> = {
-    message: Graphql.Field.field2<'a>,
-    error: Graphql.Field.field2<'b>,
-  }
-
-  type fields<'source, 'args, 'ctx, 'a, 'fieldType> = {
-    message: Graphql.Field.field3<'source, 'args, 'ctx, 'a, 'fieldType>,
-    error: Graphql.Field.field3<'source, 'args, 'ctx, string, string>,
-  }
-}
-
 module Mutation = {
-  type t<'a, 'b, 'source, 'ctx, 'args, 'output, 'data, 'fieldType> = Graphql.Mutation.relayMutation<
-    Output.fieldsDef<'a, 'b>,
-    Output.fields<'source, 'args, 'ctx, 'data, 'fieldType>,
-    'output,
-    'ctx,
-    'data,
-  >
+  type relayOutput = {
+    message: Graphql.Field.f,
+    error: Graphql.Field.f,
+  }
 
-  @module("graphql-relay")
-  external withClientMutationId: t<
-    'inputDef,
-    'a,
-    'b,
-    'source,
-    'ctx,
-    'args,
-    'data,
-    'fieldType,
-  > => Graphql.graphQlObject = "mutationWithClientMutationId"
+  type relayData<'a, 'b> = {
+    message: 'a,
+    error: Js.null<'b>,
+  }
+
+  type t<'input, 'ctx, 'data, 'error> = {
+    name: string,
+    description?: string,
+    deprecationReason?: string,
+    inputFields: Js.Dict.t<Graphql.Input.m>,
+    outputFields: relayOutput,
+    mutateAndGetPayload: ('input, 'ctx) => promise<relayData<'data, 'error>>,
+  }
+
+  module Internal = {
+    type t__internal<'input, 'ctx, 'data, 'error> = {
+      name: string,
+      description: Js.undefined<string>,
+      deprecationReason: Js.undefined<string>,
+      inputFields: Js.Dict.t<Graphql.Input.m>,
+      outputFields: relayOutput,
+      mutateAndGetPayload: ('input, 'ctx) => promise<relayData<'data, 'error>>,
+    }
+
+    @module("graphql-relay")
+    external withClientMutationId: t__internal<'input, 'ctx, 'data, 'error> => Graphql.Model.m =
+      "mutationWithClientMutationId"
+  }
+
+  let make = (mutation: t<'input, 'ctx, 'data, 'error>) =>
+    Internal.withClientMutationId({
+      name: mutation.name,
+      description: mutation.description->Js.Undefined.fromOption,
+      deprecationReason: mutation.deprecationReason->Js.Undefined.fromOption,
+      inputFields: mutation.inputFields,
+      outputFields: mutation.outputFields,
+      mutateAndGetPayload: mutation.mutateAndGetPayload,
+    })
 }
