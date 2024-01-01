@@ -79,9 +79,9 @@ module Id = {
 }
 
 module Mutation = {
-  type relayOutput = {
-    message: Graphql.Field.f,
-    error: Graphql.Field.f,
+  type relayOutput<'source, 'args, 'ctx> = {
+    message: Graphql.Field.field<'source, 'args, 'ctx>,
+    error: Graphql.Field.field<'source, 'args, 'ctx>,
   }
 
   type relayData<'a, 'b> = {
@@ -89,37 +89,45 @@ module Mutation = {
     error: Js.null<'b>,
   }
 
-  type t<'input, 'ctx, 'data, 'error> = {
+  type t<'source, 'args, 'ctx, 'input, 'data, 'error> = {
     name: string,
     description?: string,
     deprecationReason?: string,
     inputFields: Js.Dict.t<Graphql.Input.m>,
-    outputFields: relayOutput,
+    outputFields: relayOutput<'source, 'args, 'ctx>,
     mutateAndGetPayload: ('input, 'ctx) => promise<relayData<'data, 'error>>,
   }
 
   module Internal = {
+    type output_internal = {
+      message: Graphql.Field.f,
+      error: Graphql.Field.f,
+    }
     type t__internal<'input, 'ctx, 'data, 'error> = {
       name: string,
       description: Js.undefined<string>,
       deprecationReason: Js.undefined<string>,
       inputFields: Js.Dict.t<Graphql.Input.m>,
-      outputFields: relayOutput,
+      outputFields: output_internal,
       mutateAndGetPayload: ('input, 'ctx) => promise<relayData<'data, 'error>>,
     }
 
     @module("graphql-relay")
-    external withClientMutationId: t__internal<'input, 'ctx, 'data, 'error> => Graphql.Model.m =
-      "mutationWithClientMutationId"
+    external withClientMutationId: t__internal<'input, 'ctx, 'data, 'error> => Graphql.Model.m<
+      'ctx,
+    > = "mutationWithClientMutationId"
   }
 
-  let make = (mutation: t<'input, 'ctx, 'data, 'error>) =>
+  let make = (mutation: t<'source, 'args, 'ctx, 'input, 'data, 'error>) =>
     Internal.withClientMutationId({
       name: mutation.name,
       description: mutation.description->Js.Undefined.fromOption,
       deprecationReason: mutation.deprecationReason->Js.Undefined.fromOption,
       inputFields: mutation.inputFields,
-      outputFields: mutation.outputFields,
+      outputFields: {
+        message: mutation.outputFields.message->Graphql.Field.makeField,
+        error: mutation.outputFields.error->Graphql.Field.makeField,
+      },
       mutateAndGetPayload: mutation.mutateAndGetPayload,
     })
 }

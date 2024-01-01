@@ -19,21 +19,17 @@ let testMutation = Mutation.make({
     message: {
       type_: Graphql.Types.stringType,
       description: "test output type",
-      resolve: async (obj, _args, _ctx) => {
+      resolve: async (obj, _args, _ctx: unit) => {
         obj["message"]
       },
-    }
-    ->#Field3
-    ->Graphql.Field.makeField,
+    }->#Field3,
     error: {
       type_: Graphql.Types.stringType,
       description: "test output type",
-      resolve: async (obj, _args, _ctx) => {
+      resolve: async (obj, _args, _ctx: unit) => {
         obj["error"]->Js.Null.return
       },
-    }
-    ->#Field3
-    ->Graphql.Field.makeField,
+    }->#Field3,
   },
   mutateAndGetPayload: async (args, _ctx) => {
     open Mutation
