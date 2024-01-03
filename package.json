@@ -1,6 +1,6 @@
 {
   "name": "rescript-graphql-relay",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Rescript wrapper for graphql-relay library",
   "main": "./src/Relay.res",
   "keywords": [
