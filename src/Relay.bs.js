@@ -21,7 +21,7 @@ function makeConnctionArgsFun(args) {
   return Js_dict.fromArray(Js_dict.entries(args));
 }
 
-function defaultArgs(param) {
+function defaultArgs() {
   var args = GraphqlRelay.connectionArgs;
   return Js_dict.fromArray(Js_dict.entries(args));
 }

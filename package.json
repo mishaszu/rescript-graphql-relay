@@ -22,6 +22,7 @@
     "rescript": "^10.1.4"
   },
   "dependencies": {
+    "rescript": "^11.0.0-rc.8",
     "rescript-graphqljs": "file:../rescript-graphqljs",
     "rescript-helpers": "file:../rescript-helpers"
   }
